@@ -1060,7 +1060,7 @@ with tab2:
             c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
             with c1:
                 filter_col = st.selectbox("عمود الفلترة", options=["(لا يوجد)"] + cols_all, key="db_filter_col")
-                   with c2:
+            with c2:
             filter_op = st.selectbox("نوع الشرط", ["=", "contains", ">", "<"], key="db_filter_op")
             with c3:
                 filter_val = st.text_input("القيمة", key="db_filter_val")
