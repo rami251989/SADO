@@ -390,7 +390,7 @@ def build_advanced_report(df: pd.DataFrame, config=None):
     numeric_df = numeric_df.dropna(axis=1, how="all")
 
     missing = df.isna().sum()
-    percent_missing = (missing / len(df)) * 100
+    percent_missing = (missing / len(df) * 100) if len(df) > 0 else 0
     missing_table = pd.DataFrame({
         "Missing Count": missing,
         "Missing %": percent_missing
@@ -485,15 +485,15 @@ def build_advanced_report(df: pd.DataFrame, config=None):
                 report.append("لا يوجد علاقات ارتباط قوية جدًا.")
         report.append("")
 
-    text_cols = df.select_dtypes(include=["object", "string"])
+    text_cols_df = df.select_dtypes(include=["object", "string"])
     if cfg.get("text", True):
         report.append("■ 6) تحليل الأعمدة النصية")
         report.append("-" * 60)
-        if text_cols.empty:
+        if text_cols_df.empty:
             report.append("لا يوجد أعمدة نصية.")
         else:
-            for col in text_cols.columns:
-                col_len = text_cols[col].astype(str).apply(len)
+            for col in text_cols_df.columns:
+                col_len = text_cols_df[col].astype(str).apply(len)
                 report.append(f"\nعمود: {col}")
                 report.append(f"متوسط طول النص : {col_len.mean():.2f}")
                 report.append(f"أطول نص        : {col_len.max()}")
@@ -503,7 +503,7 @@ def build_advanced_report(df: pd.DataFrame, config=None):
         report.append("\n■ 7) جاهزية البيانات لبناء نموذج ML")
         report.append("-" * 60)
         report.append("الأعمدة التي تحتاج Encoding (تصنيفية / نصية):")
-        report.append(str(text_cols.columns.tolist()))
+        report.append(str(text_cols_df.columns.tolist()))
         report.append("")
         report.append("الأعمدة التي تحتاج Scaling (رقمية):")
         report.append(str(numeric_df.columns.tolist()))
@@ -543,7 +543,7 @@ def build_advanced_report(df: pd.DataFrame, config=None):
                             f"→ قد يسببان Multicollinearity في النماذج الخطية."
                         )
         high_card = []
-        for col in text_cols.columns:
+        for col in text_cols_df.columns:
             if df[col].nunique() > 50:
                 high_card.append(col)
         if high_card:
@@ -1020,8 +1020,8 @@ with tab1:
                                     res = res + sep + df[c].fillna("").astype(str)
                                 df[new_col_name] = res
                             else:
-                                numeric_df = df[merge_cols].apply(pd.to_numeric, errors="coerce")
-                                df[new_col_name] = numeric_df.sum(axis=1)
+                                numeric_df_merge = df[merge_cols].apply(pd.to_numeric, errors="coerce")
+                                df[new_col_name] = numeric_df_merge.sum(axis=1)
                             st.session_state.df = df
                             st.success(f"تم إنشاء العمود الجديد: {new_col_name}")
                         except Exception as e:
@@ -1055,7 +1055,6 @@ with tab2:
         cols_all = list(df.columns)
 
         # فلتر (Slicer)
-               # فلتر (Slicer)
         st.markdown("### 🎛 فلترة البيانات (Slicer)")
         if cols_all:
             c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
@@ -1074,9 +1073,8 @@ with tab2:
             with c3:
                 filter_val = st.text_input("القيمة", key="db_filter_val")
             with c4:
-                apply_filter = st.button("تطبيق الفلتر")
-                clear_filter = st.button("مسح الفلتر")
-
+                apply_filter = st.button("تطبيق الفلتر", key="apply_filter_btn")
+                clear_filter = st.button("مسح الفلتر", key="clear_filter_btn")
 
             if apply_filter and filter_col != "(لا يوجد)":
                 try:
@@ -1119,32 +1117,32 @@ with tab2:
                 st.session_state.dashboard_filter = None
                 st.success("تم مسح الفلتر.")
 
-        def apply_dashboard_filter(df, flt):
+        def apply_dashboard_filter(df_, flt):
             if flt is None:
-                return df
+                return df_
             col = flt.get("column")
             op = flt.get("op")
             val = flt.get("value", "")
-            if col not in df.columns:
-                return df
+            if col not in df_.columns:
+                return df_
             try:
                 if op in [">", "<"]:
-                    series = pd.to_numeric(df[col], errors="coerce")
+                    series = pd.to_numeric(df_[col], errors="coerce")
                     v = pd.to_numeric(val, errors="coerce")
                     if np.isnan(v):
-                        return df
+                        return df_
                     if op == ">":
-                        return df[series > v]
+                        return df_[series > v]
                     else:
-                        return df[series < v]
+                        return df_[series < v]
                 elif op == "=":
-                    return df[df[col].astype(str) == val]
+                    return df_[df_[col].astype(str) == val]
                 elif op == "contains":
-                    return df[df[col].astype(str).str.contains(val, na=False)]
+                    return df_[df_[col].astype(str).str.contains(val, na=False)]
                 else:
-                    return df
+                    return df_
             except Exception:
-                return df
+                return df_
 
         db_df = apply_dashboard_filter(df, st.session_state.dashboard_filter)
         st.caption(f"عدد الصفوف بعد الفلتر في الداشبورد: {len(db_df)}")
@@ -1169,12 +1167,15 @@ with tab2:
             x_col = st.selectbox("عمود X / الفئة", options=["(بدون)"] + list(db_df.columns))
         with c3:
             numeric_df_dash = db_df.apply(pd.to_numeric, errors="coerce")
-            numeric_cols_dash = [c for c in db_df.columns if not numeric_df_dash[c].dropna().empty]
+            numeric_cols_dash = [
+                c for c in db_df.columns
+                if not numeric_df_dash[c].dropna().empty
+            ]
             y_col = st.selectbox("عمود القيمة (Y)", options=["(بدون)"] + numeric_cols_dash)
         with c4:
             agg = st.selectbox("نوع التجميع", options=["None", "sum", "mean", "count"])
 
-        if st.button("➕ إضافة إلى اللوحة"):
+        if st.button("➕ إضافة إلى اللوحة", key="add_to_dashboard"):
             if chart_type != "KPI (قيمة واحدة)" and x_col == "(بدون)":
                 st.warning("اختر عمود X.")
             elif chart_type not in ["Histogram (توزيع)", "KPI (قيمة واحدة)", "Pie (نسب مئوية)"] and y_col == "(بدون)":
@@ -1190,7 +1191,7 @@ with tab2:
                 )
                 st.success("تم إضافة العنصر إلى اللوحة.")
 
-        if st.button("🧹 مسح كل عناصر اللوحة"):
+        if st.button("🧹 مسح كل عناصر اللوحة", key="clear_dashboard"):
             st.session_state.dashboard_config = []
             st.success("تم مسح اللوحة.")
 
@@ -1202,9 +1203,9 @@ with tab2:
                 st.markdown(f"#### عنصر #{i+1}: {cfg['chart_type']}")
 
                 chart_type = cfg["chart_type"]
-                x_col = cfg["x_col"]
-                y_col = cfg["y_col"]
-                agg = cfg["agg"]
+                x_col_cfg = cfg["x_col"]
+                y_col_cfg = cfg["y_col"]
+                agg_cfg = cfg["agg"]
 
                 fig = Figure(figsize=(5, 3))
                 ax = fig.add_subplot(111)
@@ -1215,87 +1216,106 @@ with tab2:
                         ax.text(0.5, 0.5, ar("لا يوجد بيانات بعد الفلتر"), ha="center", va="center")
                     else:
                         if chart_type == "Bar (Category vs Value)":
-                            numeric_y = pd.to_numeric(ddf[y_col], errors="coerce")
-                            data = pd.DataFrame({x_col: ddf[x_col], y_col: numeric_y})
-                            if agg == "sum":
-                                grouped = data.groupby(x_col)[y_col].sum()
-                            elif agg == "mean":
-                                grouped = data.groupby(x_col)[y_col].mean()
-                            elif agg == "count":
-                                grouped = data.groupby(x_col)[y_col].count()
+                            if x_col_cfg is None or y_col_cfg is None:
+                                ax.text(0.5, 0.5, ar("يرجى تحديد X و Y"), ha="center", va="center")
                             else:
-                                grouped = data.groupby(x_col)[y_col].mean()
-                            ax.bar(grouped.index.astype(str), grouped.values)
-                            ax.set_title(ar(f"Bar - {y_col} حسب {x_col} ({agg})"))
-                            ax.set_xlabel(ar(x_col))
-                            ax.set_ylabel(ar(y_col))
-                            ax.tick_params(axis='x', rotation=45)
+                                numeric_y = pd.to_numeric(ddf[y_col_cfg], errors="coerce")
+                                data = pd.DataFrame({x_col_cfg: ddf[x_col_cfg], y_col_cfg: numeric_y})
+                                if agg_cfg == "sum":
+                                    grouped = data.groupby(x_col_cfg)[y_col_cfg].sum()
+                                elif agg_cfg == "mean":
+                                    grouped = data.groupby(x_col_cfg)[y_col_cfg].mean()
+                                elif agg_cfg == "count":
+                                    grouped = data.groupby(x_col_cfg)[y_col_cfg].count()
+                                else:
+                                    grouped = data.groupby(x_col_cfg)[y_col_cfg].mean()
+                                ax.bar(grouped.index.astype(str), grouped.values)
+                                ax.set_title(ar(f"Bar - {y_col_cfg} حسب {x_col_cfg} ({agg_cfg})"))
+                                ax.set_xlabel(ar(x_col_cfg))
+                                ax.set_ylabel(ar(y_col_cfg))
+                                ax.tick_params(axis='x', rotation=45)
 
                         elif chart_type == "Line (Trend)":
-                            numeric_y = pd.to_numeric(ddf[y_col], errors="coerce")
-                            data = pd.DataFrame({x_col: ddf[x_col], y_col: numeric_y})
-                            if agg in ["sum", "mean", "count"]:
-                                grouped = getattr(data.groupby(x_col)[y_col], agg)()
-                                ax.plot(grouped.index.astype(str), grouped.values, marker="o")
-                                ax.set_title(ar(f"Line - {y_col} حسب {x_col} ({agg})"))
+                            if x_col_cfg is None or y_col_cfg is None:
+                                ax.text(0.5, 0.5, ar("يرجى تحديد X و Y"), ha="center", va="center")
                             else:
-                                ax.plot(data[x_col].astype(str), data[y_col], marker="o")
-                                ax.set_title(ar(f"Line - {y_col} حسب {x_col}"))
-                            ax.set_xlabel(ar(x_col))
-                            ax.set_ylabel(ar(y_col))
-                            ax.tick_params(axis='x', rotation=45)
+                                numeric_y = pd.to_numeric(ddf[y_col_cfg], errors="coerce")
+                                data = pd.DataFrame({x_col_cfg: ddf[x_col_cfg], y_col_cfg: numeric_y})
+                                if agg_cfg in ["sum", "mean", "count"]:
+                                    grouped = getattr(data.groupby(x_col_cfg)[y_col_cfg], agg_cfg)()
+                                    ax.plot(grouped.index.astype(str), grouped.values, marker="o")
+                                    ax.set_title(ar(f"Line - {y_col_cfg} حسب {x_col_cfg} ({agg_cfg})"))
+                                else:
+                                    ax.plot(data[x_col_cfg].astype(str), data[y_col_cfg], marker="o")
+                                    ax.set_title(ar(f"Line - {y_col_cfg} حسب {x_col_cfg}"))
+                                ax.set_xlabel(ar(x_col_cfg))
+                                ax.set_ylabel(ar(y_col_cfg))
+                                ax.tick_params(axis='x', rotation=45)
 
                         elif chart_type == "Pie (نسب مئوية)":
-                            if agg in ["sum", "mean"]:
-                                numeric_y = pd.to_numeric(ddf[y_col], errors="coerce")
-                                data = pd.DataFrame({x_col: ddf[x_col], y_col: numeric_y})
-                                grouped = getattr(data.groupby(x_col)[y_col], agg)()
+                            if x_col_cfg is None:
+                                ax.text(0.5, 0.5, ar("يرجى تحديد عمود الفئات (X)"), ha="center", va="center")
                             else:
-                                grouped = ddf[x_col].value_counts()
-                            ax.pie(
-                                grouped.values,
-                                labels=[ar(str(k)) for k in grouped.index],
-                                autopct="%1.1f%%",
-                            )
-                            ax.set_title(ar(f"Pie - {x_col}"))
+                                if agg_cfg in ["sum", "mean"] and y_col_cfg is not None:
+                                    numeric_y = pd.to_numeric(ddf[y_col_cfg], errors="coerce")
+                                    data = pd.DataFrame({x_col_cfg: ddf[x_col_cfg], y_col_cfg: numeric_y})
+                                    grouped = getattr(data.groupby(x_col_cfg)[y_col_cfg], agg_cfg)()
+                                else:
+                                    grouped = ddf[x_col_cfg].value_counts()
+                                ax.pie(
+                                    grouped.values,
+                                    labels=[ar(str(k)) for k in grouped.index],
+                                    autopct="%1.1f%%",
+                                )
+                                ax.set_title(ar(f"Pie - {x_col_cfg}"))
 
                         elif chart_type == "Scatter (X vs Y)":
-                            x_num = pd.to_numeric(ddf[x_col], errors="coerce")
-                            y_num = pd.to_numeric(ddf[y_col], errors="coerce")
-                            mask = ~x_num.isna() & ~y_num.isna()
-                            ax.scatter(x_num[mask], y_num[mask], alpha=0.7)
-                            ax.set_title(ar(f"Scatter - {y_col} مقابل {x_col}"))
-                            ax.set_xlabel(ar(x_col))
-                            ax.set_ylabel(ar(y_col))
+                            if x_col_cfg is None or y_col_cfg is None:
+                                ax.text(0.5, 0.5, ar("يرجى تحديد X و Y"), ha="center", va="center")
+                            else:
+                                x_num = pd.to_numeric(ddf[x_col_cfg], errors="coerce")
+                                y_num = pd.to_numeric(ddf[y_col_cfg], errors="coerce")
+                                mask = ~x_num.isna() & ~y_num.isna()
+                                ax.scatter(x_num[mask], y_num[mask], alpha=0.7)
+                                ax.set_title(ar(f"Scatter - {y_col_cfg} مقابل {x_col_cfg}"))
+                                ax.set_xlabel(ar(x_col_cfg))
+                                ax.set_ylabel(ar(y_col_cfg))
 
                         elif chart_type == "Histogram (توزيع)":
-                            target = y_col or x_col
-                            numeric_target = pd.to_numeric(ddf[target], errors="coerce")
-                            numeric_target.dropna().hist(ax=ax, bins=20)
-                            ax.set_title(ar(f"Histogram - {target}"))
-                            ax.set_xlabel(ar(target))
-                            ax.set_ylabel(ar("العدد"))
+                            target = y_col_cfg or x_col_cfg
+                            if target is None:
+                                ax.text(0.5, 0.5, ar("يرجى اختيار عمود واحد على الأقل"), ha="center", va="center")
+                            else:
+                                numeric_target = pd.to_numeric(ddf[target], errors="coerce")
+                                numeric_target.dropna().hist(ax=ax, bins=20)
+                                ax.set_title(ar(f"Histogram - {target}"))
+                                ax.set_xlabel(ar(target))
+                                ax.set_ylabel(ar("العدد"))
 
                         elif chart_type == "KPI (قيمة واحدة)":
-                            target = y_col or x_col
-                            numeric_target = pd.to_numeric(ddf[target], errors="coerce")
-                            if agg == "sum":
-                                val = numeric_target.sum()
-                                label = "Sum"
-                            elif agg == "mean":
-                                val = numeric_target.mean()
-                                label = "Mean"
-                            elif agg == "count":
-                                val = numeric_target.count()
-                                label = "Count"
+                            target = y_col_cfg or x_col_cfg
+                            if target is None:
+                                ax.axis("off")
+                                ax.text(0.5, 0.5, ar("يرجى اختيار عمود للـ KPI"), ha="center", va="center")
                             else:
-                                val = numeric_target.mean()
-                                label = "Mean"
-                            ax.axis("off")
-                            ax.text(0.5, 0.6, f"{val:,.2f}", ha="center", va="center",
-                                    fontsize=24, fontweight="bold")
-                            ax.text(0.5, 0.3, ar(f"{label} of {target}"),
-                                    ha="center", va="center", fontsize=12)
+                                numeric_target = pd.to_numeric(ddf[target], errors="coerce")
+                                if agg_cfg == "sum":
+                                    val = numeric_target.sum()
+                                    label = "Sum"
+                                elif agg_cfg == "mean" or agg_cfg == "None":
+                                    val = numeric_target.mean()
+                                    label = "Mean"
+                                elif agg_cfg == "count":
+                                    val = numeric_target.count()
+                                    label = "Count"
+                                else:
+                                    val = numeric_target.mean()
+                                    label = "Mean"
+                                ax.axis("off")
+                                ax.text(0.5, 0.6, f"{val:,.2f}", ha="center", va="center",
+                                        fontsize=24, fontweight="bold")
+                                ax.text(0.5, 0.3, ar(f"{label} of {target}"),
+                                        ha="center", va="center", fontsize=12)
 
                 except Exception as e:
                     st.error(f"خطأ في رسم العنصر #{i+1}: {e}")
@@ -1321,8 +1341,8 @@ with tab3:
             unique = st.checkbox("القيم الفريدة", value=True)
         with c2:
             numeric = st.checkbox("تحليل الأعمدة الرقمية", value=True)
-            corr = st.checkbox("تحليل الارتباط", value=True)
-            text_cols = st.checkbox("تحليل الأعمدة النصية", value=True)
+            corr_chk = st.checkbox("تحليل الارتباط", value=True)
+            text_cols_chk = st.checkbox("تحليل الأعمدة النصية", value=True)
         with c3:
             ml = st.checkbox("جاهزية ML", value=True)
             insights = st.checkbox("ملاحظات ذكية", value=True)
@@ -1332,18 +1352,18 @@ with tab3:
             "missing": missing,
             "unique": unique,
             "numeric": numeric,
-            "correlation": corr,
-            "text": text_cols,
+            "correlation": corr_chk,
+            "text": text_cols_chk,
             "ml": ml,
             "insights": insights,
         }
 
         if st.button("🔍 توليد التقرير"):
-            report_str, numeric_df, missing_table = build_advanced_report(df, config)
-            st.session_state["last_report"] = (report_str, numeric_df, missing_table)
+            report_str, numeric_df_rep, missing_table = build_advanced_report(df, config)
+            st.session_state["last_report"] = (report_str, numeric_df_rep, missing_table)
 
         if st.session_state["last_report"] is not None:
-            report_str, numeric_df, missing_table = st.session_state["last_report"]
+            report_str, numeric_df_rep, missing_table = st.session_state["last_report"]
 
             st.markdown("### 🧾 نص التقرير")
             st.text(report_str)
@@ -1357,8 +1377,8 @@ with tab3:
             ax1.tick_params(axis='x', rotation=45)
             st.pyplot(fig1)
 
-            if not numeric_df.empty and numeric_df.shape[1] >= 2:
-                corr_mat = numeric_df.corr()
+            if not numeric_df_rep.empty and numeric_df_rep.shape[1] >= 2:
+                corr_mat = numeric_df_rep.corr()
                 fig2, ax2 = plt.subplots(figsize=(5, 4))
                 cax = ax2.imshow(corr_mat, cmap="coolwarm", vmin=-1, vmax=1)
                 fig2.colorbar(cax, ax=ax2, fraction=0.046, pad=0.04)
@@ -1390,5 +1410,3 @@ with tab4:
 
     notes = st.text_area("اكتب ملاحظاتك / أفكارك / TODOs هنا:", height=300, key="notes")
     st.caption("هذه الملاحظات تبقى في الواجهة فقط (لا تُحفظ في ملف خارجي تلقائياً).")
-
-
