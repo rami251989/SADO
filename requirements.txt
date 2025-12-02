@@ -3,5 +3,6 @@ pandas
 numpy
 matplotlib
 openpyxl
+xlrd
 arabic-reshaper
 python-bidi
