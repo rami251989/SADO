@@ -25,6 +25,22 @@ st.set_page_config(
 dark_style = """
 <style>
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg: #020617;
+    --surface: rgba(12, 18, 34, 0.72);
+    --border: rgba(148, 163, 184, 0.25);
+    --primary: #5eead4;
+    --primary-strong: #06b6d4;
+    --accent: #facc15;
+    --muted: #9ca3af;
+}
+
+* {
+    font-family: 'Inter', "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* إزالة شريط Streamlit العلوي */
 header[data-testid="stHeader"] {
     background: transparent;
@@ -32,15 +48,33 @@ header[data-testid="stHeader"] {
 
 /* خلفية التطبيق */
 .stApp {
-    background: radial-gradient(circle at top left, #1f2937 0, #020617 55%, #000000 100%);
+    background: radial-gradient(circle at 20% 20%, #111827 0, #020617 40%, #020617 100%),
+                linear-gradient(135deg, rgba(6, 182, 212, 0.08), transparent 50%),
+                linear-gradient(225deg, rgba(250, 204, 21, 0.07), transparent 45%);
     color: #f9fafb;
-    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+}
+
+.stApp::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 120px 120px;
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.block-container {
+    padding-top: 1rem;
 }
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #020617, #020617 60%, #0b1120 100%);
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.95) 60%, rgba(11, 17, 32, 0.98));
     border-right: 1px solid #1e293b;
+    backdrop-filter: blur(6px);
 }
 section[data-testid="stSidebar"] .css-1d391kg {
     padding-top: 2rem;
@@ -48,15 +82,19 @@ section[data-testid="stSidebar"] .css-1d391kg {
 
 /* Navbar */
 .navbar {
-    background: linear-gradient(90deg, rgba(15,23,42,0.95), rgba(17,24,39,0.98));
-    padding: 12px 24px;
-    border-radius: 16px;
-    margin-bottom: 18px;
-    border: 1px solid rgba(148,163,184,0.25);
-    box-shadow: 0 18px 45px rgba(15,23,42,0.8);
+    background: linear-gradient(120deg, rgba(15,23,42,0.85), rgba(17,24,39,0.95)),
+                radial-gradient(circle at 15% 20%, rgba(94,234,212,0.25), transparent 35%),
+                radial-gradient(circle at 85% 20%, rgba(250,204,21,0.18), transparent 28%);
+    padding: 14px 24px;
+    border-radius: 18px;
+    margin-bottom: 22px;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 60px rgba(15,23,42,0.88);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+    overflow: hidden;
 }
 .navbar-left {
     display: flex;
@@ -67,8 +105,8 @@ section[data-testid="stSidebar"] .css-1d391kg {
     width: 34px;
     height: 34px;
     border-radius: 999px;
-    background: radial-gradient(circle at 30% 20%, #fde68a, #f97316, #7c2d12);
-    box-shadow: 0 0 25px rgba(234,179,8,0.7);
+    background: radial-gradient(circle at 30% 20%, #5eead4, #14b8a6, #0ea5e9);
+    box-shadow: 0 0 25px rgba(94,234,212,0.55);
 }
 .nav-title-main {
     font-size: 20px;
@@ -77,55 +115,58 @@ section[data-testid="stSidebar"] .css-1d391kg {
 }
 .nav-title-sub {
     font-size: 11px;
-    color: #9ca3af;
+    color: var(--muted);
 }
 .nav-badge {
     font-size: 10px;
-    color: #facc15;
+    color: var(--bg);
     border-radius: 999px;
     padding: 2px 8px;
-    border: 1px solid rgba(250,204,21,0.45);
-    background: rgba(17,24,39,0.9);
+    border: 1px solid rgba(94,234,212,0.55);
+    background: linear-gradient(120deg, #5eead4, #22d3ee);
 }
 .navbar-right {
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 11px;
-    color: #9ca3af;
+    color: var(--muted);
 }
 
 /* Stat cards */
 .stat-card {
-    background: radial-gradient(circle at top left, #111827, #020617);
-    padding: 18px 20px;
-    border-radius: 18px;
-    border: 1px solid rgba(30,64,175,0.55);
-    box-shadow: 0 18px 40px rgba(15,23,42,0.85);
+    background: linear-gradient(180deg, rgba(15,23,42,0.92), rgba(10,17,33,0.9)),
+                radial-gradient(circle at 20% 0%, rgba(94,234,212,0.2), transparent 45%),
+                radial-gradient(circle at 85% 15%, rgba(250,204,21,0.14), transparent 35%);
+    padding: 20px 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(94,234,212,0.3);
+    box-shadow: 0 20px 55px rgba(8, 47, 73, 0.5);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(6px);
 }
 .stat-card::before {
     content: "";
     position: absolute;
-    width: 220px;
-    height: 220px;
+    width: 320px;
+    height: 320px;
     border-radius: 999px;
-    background: radial-gradient(circle, rgba(96,165,250,0.23), transparent 60%);
-    top: -120px;
-    right: -80px;
-    opacity: 0.9;
+    background: radial-gradient(circle, rgba(96,165,250,0.18), transparent 60%);
+    top: -160px;
+    right: -120px;
+    opacity: 0.8;
 }
 .stat-label {
     font-size: 11px;
-    color: #9ca3af;
+    color: var(--muted);
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 .stat-value {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 700;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 .stat-pill {
     display: inline-flex;
@@ -134,9 +175,10 @@ section[data-testid="stSidebar"] .css-1d391kg {
     padding: 2px 7px;
     border-radius: 999px;
     font-size: 10px;
-    border: 1px solid rgba(148,163,184,0.45);
+    border: 1px solid rgba(94,234,212,0.25);
     color: #e5e7eb;
-    margin-top: 8px;
+    margin-top: 10px;
+    background: rgba(94,234,212,0.08);
 }
 
 /* ألوان خاصة لكل كرت */
@@ -146,34 +188,38 @@ section[data-testid="stSidebar"] .css-1d391kg {
 
 /* أزرار عامة */
 .stButton>button {
-    background: linear-gradient(135deg, #eab308, #f97316);
-    color: #111827;
-    border-radius: 999px;
-    padding: 8px 20px;
+    background: linear-gradient(135deg, #22d3ee, #5eead4);
+    color: #0b1224;
+    border-radius: 14px;
+    padding: 10px 22px;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 13px;
-    box-shadow: 0 12px 25px rgba(234,179,8,0.35);
+    letter-spacing: 0.01em;
+    box-shadow: 0 12px 30px rgba(34, 211, 238, 0.35);
     transition: all 0.18s ease-out;
 }
 .stButton>button:hover {
     transform: translateY(-1px) scale(1.02);
-    box-shadow: 0 18px 35px rgba(234,179,8,0.55);
+    box-shadow: 0 18px 45px rgba(34, 211, 238, 0.55);
 }
 
 /* Tabs */
 .stTabs [role="tablist"] {
     border-bottom: 1px solid #1e293b;
+    background: rgba(15,23,42,0.55);
+    padding: 4px 8px;
+    border-radius: 14px;
 }
 .stTabs [role="tab"] {
-    color: #9ca3af;
-    padding-bottom: 10px;
-    font-weight: 500;
+    color: var(--muted);
+    padding-bottom: 12px;
+    font-weight: 600;
     font-size: 13px;
 }
 .stTabs [role="tab"][aria-selected="true"] {
-    color: #facc15;
-    border-bottom: 3px solid #facc15;
+    color: #5eead4;
+    border-bottom: 3px solid #5eead4;
 }
 
 /* Dataframe tables */
@@ -181,21 +227,31 @@ section[data-testid="stSidebar"] .css-1d391kg {
     background-color: #020617 !important;
     color: #e5e7eb !important;
 }
+.dataframe th {
+    background: rgba(15,23,42,0.65) !important;
+    color: #e5e7eb !important;
+    font-weight: 600 !important;
+}
+.dataframe td, .dataframe th {
+    border-color: rgba(148,163,184,0.2) !important;
+}
 
 /* Inputs */
 div[data-baseweb="input"]>div>input,
 .stSelectbox>div>div>select,
 .stTextInput>div>div>input {
     background-color: #020617 !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
     border: 1px solid #1e293b !important;
     color: #e5e7eb !important;
+    box-shadow: 0 0 0 1px rgba(94,234,212,0.15);
 }
 .stTextArea textarea {
     background-color: #020617 !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
     border: 1px solid #1e293b !important;
     color: #e5e7eb !important;
+    box-shadow: 0 0 0 1px rgba(94,234,212,0.15);
 }
 
 /* Expander */
@@ -253,6 +309,21 @@ def ar(text):
     reshaped = arabic_reshaper.reshape(text)
     bidi_text = get_display(reshaped)
     return bidi_text
+
+
+def sample_dataframe(rows: int = 50) -> pd.DataFrame:
+    """بيانات تجريبية صغيرة لعرض مميزات التطبيق بسرعة."""
+    np.random.seed(42)
+    return pd.DataFrame(
+        {
+            "المنطقة": np.random.choice(["الرياض", "جدة", "الدمام", "أبها"], size=rows),
+            "القسم": np.random.choice(["مبيعات", "عمليات", "مالية", "تقنية"], size=rows),
+            "المبيعات": np.random.normal(loc=150_000, scale=25_000, size=rows).round(0),
+            "الزيارات": np.random.poisson(lam=320, size=rows),
+            "تاريخ الطلب": pd.date_range("2024-01-01", periods=rows, freq="D"),
+            "ملاحظات": np.random.choice(["", "متابعة عاجلة", "عميل استراتيجي", "عرض موسمي"], size=rows),
+        }
+    )
 
 
 # ========================
@@ -621,6 +692,10 @@ def create_pdf_report(df: pd.DataFrame, config=None):
 st.sidebar.title("📂 ملف البيانات")
 
 uploaded_file = st.sidebar.file_uploader("اختر ملف Excel", type=["xlsx", "xls"])
+
+if st.sidebar.button("📦 تحميل بيانات تجريبية"):
+    st.session_state.df = sample_dataframe(60)
+    st.sidebar.success("تم تحميل بيانات تجريبية لإظهار الميزات ✨")
 
 if uploaded_file is not None:
     try:
