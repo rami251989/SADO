@@ -330,7 +330,9 @@ def sample_dataframe(rows: int = 50) -> pd.DataFrame:
 # Session State
 # ========================
 if "df" not in st.session_state:
-    st.session_state.df = None
+    # تحميل بيانات تجريبية تلقائياً كي لا تظهر الصفحة فارغة عند التشغيل الأول
+    st.session_state.df = sample_dataframe(120)
+    st.session_state.show_sample_alert = True
 
 if "dashboard_config" not in st.session_state:
     st.session_state.dashboard_config = []
@@ -695,16 +697,31 @@ uploaded_file = st.sidebar.file_uploader("اختر ملف Excel", type=["xlsx", 
 
 if st.sidebar.button("📦 تحميل بيانات تجريبية"):
     st.session_state.df = sample_dataframe(60)
+    st.session_state.show_sample_alert = False
     st.sidebar.success("تم تحميل بيانات تجريبية لإظهار الميزات ✨")
 
 if uploaded_file is not None:
     try:
         st.session_state.df = pd.read_excel(uploaded_file)
+        st.session_state.show_sample_alert = False
         st.sidebar.success("تم تحميل الملف بنجاح ✅")
     except Exception as e:
         st.sidebar.error(f"فشل في قراءة الملف: {e}")
 
 df = st.session_state.df
+
+if st.session_state.get("show_sample_alert"):
+    st.info(
+        "تم تحميل بيانات تجريبية تلقائياً لعرض الواجهة بشكل كامل. ارفع ملف Excel من القائمة الجانبية أو اضغط زر البيانات التجريبية لتبديلها.",
+        icon="✨",
+    )
+
+    st.button(
+        "إخفاء التنبيه",
+        key="dismiss_sample_alert",
+        help="إخفاء تنبيه البيانات التجريبية مع إبقائها محملة.",
+        on_click=lambda: st.session_state.update(show_sample_alert=False),
+    )
 
 if df is not None:
     excel_buf = BytesIO()
