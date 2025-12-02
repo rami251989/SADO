@@ -715,7 +715,13 @@ if st.session_state.get("show_sample_alert"):
         "تم تحميل بيانات تجريبية تلقائياً لعرض الواجهة بشكل كامل. ارفع ملف Excel من القائمة الجانبية أو اضغط زر البيانات التجريبية لتبديلها.",
         icon="✨",
     )
-    st.session_state.show_sample_alert = False
+
+    st.button(
+        "إخفاء التنبيه",
+        key="dismiss_sample_alert",
+        help="إخفاء تنبيه البيانات التجريبية مع إبقائها محملة.",
+        on_click=lambda: st.session_state.update(show_sample_alert=False),
+    )
 
 if df is not None:
     excel_buf = BytesIO()
