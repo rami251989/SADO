@@ -697,6 +697,7 @@ uploaded_file = st.sidebar.file_uploader("اختر ملف Excel", type=["xlsx", 
 
 if st.sidebar.button("📦 تحميل بيانات تجريبية"):
     st.session_state.df = sample_dataframe(60)
+    st.session_state.show_sample_alert = False
     st.sidebar.success("تم تحميل بيانات تجريبية لإظهار الميزات ✨")
 
 if uploaded_file is not None:
